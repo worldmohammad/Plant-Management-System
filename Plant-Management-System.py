@@ -67,7 +67,7 @@ def show_add_plant_window():
     global add_window, entry_scientific_name, entry_local_name, entry_family, entry_temperature_need, entry_light_need
     global entry_soil_type, entry_irrigation_frequency, entry_water_amount, entry_irrigation_method, entry_ph_level
     global entry_fertilizer_type, entry_fertilizer_amount, entry_light_exposure_duration, entry_humidity
-    global entry_solution_composition, entry_light_type
+    global entry_solution_composition, entry_light_type, entry_disease_type, entry_prevention_method, entry_treatment_method
 
     add_window = tk.Toplevel(root)
     add_window.title("افزودن گیاه جدید")
@@ -88,6 +88,9 @@ def show_add_plant_window():
     tk.Label(add_window, text="میزان رطوبت:").grid(row=13, column=0, padx=10, pady=5)
     tk.Label(add_window, text="ترکیب محلول غذایی:").grid(row=14, column=0, padx=10, pady=5)
     tk.Label(add_window, text="نوع تابش نور:").grid(row=15, column=0, padx=10, pady=5)
+    tk.Label(add_window, text="نوع بیماری:").grid(row=16, column=0, padx=10, pady=5)
+    tk.Label(add_window, text="روش پیشگیری:").grid(row=17, column=0, padx=10, pady=5)
+    tk.Label(add_window, text="روش درمان:").grid(row=18, column=0, padx=10, pady=5)
 
     entry_scientific_name = tk.Entry(add_window, width=30)
     entry_scientific_name.grid(row=0, column=1, padx=10, pady=5)
@@ -121,9 +124,15 @@ def show_add_plant_window():
     entry_solution_composition.grid(row=14, column=1, padx=10, pady=5)
     entry_light_type = ttk.Combobox(add_window, values=["مستقیم", "غیرمستقیم"], width=28)
     entry_light_type.grid(row=15, column=1, padx=10, pady=5)
+    entry_disease_type = tk.Entry(add_window, width=30)
+    entry_disease_type.grid(row=16, column=1, padx=10, pady=5)
+    entry_prevention_method = tk.Entry(add_window, width=30)
+    entry_prevention_method.grid(row=17, column=1, padx=10, pady=5)
+    entry_treatment_method = tk.Entry(add_window, width=30)
+    entry_treatment_method.grid(row=18, column=1, padx=10, pady=5)
 
     btn_save = tk.Button(add_window, text="ذخیره", command=add_plant)
-    btn_save.grid(row=16, column=0, columnspan=2, pady=10)
+    btn_save.grid(row=19, column=0, columnspan=2, pady=10)
 
     # اضافه کردن منوی راست کلیک برای کپی، کات و پیست
     def add_context_menu(entry_widget):
