@@ -1,31 +1,31 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox, ttk
 import sqlite3
 
-# اتصال به پایگاه داده
+# اتصال به دیتابیس SQLite
 conn = sqlite3.connect('plants.db')
 c = conn.cursor()
 
-# ایجاد جدول گیاهان در پایگاه داده
-c.execute('''CREATE TABLE IF NOT EXISTS plants (
-                id INTEGER PRIMARY KEY,
-                scientific_name TEXT,
-                local_name TEXT,
-                family TEXT,
-                water_need TEXT,
-                light_need TEXT,
-                soil_type TEXT,
-                irrigation_frequency TEXT,
-                water_amount REAL,
-                irrigation_method TEXT,
-                ph_level REAL,
-                fertilizer_type TEXT,
-                fertilizer_amount REAL,
-                light_exposure_duration TEXT
-            )''')
-conn.commit()
+# ایجاد جدول برای نگهداری اطلاعات گیاهان در صورت عدم وجود
+c.execute('''
+          CREATE TABLE IF NOT EXISTS plants
+          (id INTEGER PRIMARY KEY AUTOINCREMENT,
+          scientific_name TEXT,
+          local_name TEXT,
+          family TEXT,
+          water_need TEXT,
+          light_need TEXT,
+          soil_type TEXT,
+          irrigation_frequency TEXT,
+          water_amount TEXT,
+          irrigation_method TEXT,
+          ph_level TEXT,
+          fertilizer_type TEXT,
+          fertilizer_amount TEXT,
+          light_exposure_duration TEXT)
+          ''')
 
-# تابع برای افزودن گیاه جدید
+# تابع افزودن گیاه جدید
 def add_plant():
     scientific_name = entry_scientific_name.get()
     local_name = entry_local_name.get()
@@ -51,49 +51,16 @@ def add_plant():
                irrigation_frequency, water_amount, irrigation_method, ph_level,
                fertilizer_type, fertilizer_amount, light_exposure_duration))
     conn.commit()
-
-    messagebox.showinfo("افزودن گیاه", "گیاه با موفقیت اضافه شد.")
-    clear_entries()
+    messagebox.showinfo("افزودن گیاه", "گیاه با موفقیت افزوده شد.")
     show_plants_in_treeview()
+    add_window.destroy()
 
-# تابع برای پاک کردن مقادیر ورودی‌ها
-def clear_entries():
-    entry_scientific_name.delete(0, tk.END)
-    entry_local_name.delete(0, tk.END)
-    entry_family.delete(0, tk.END)
-    entry_water_need.delete(0, tk.END)
-    entry_light_need.delete(0, tk.END)
-    entry_soil_type.delete(0, tk.END)
-    entry_irrigation_frequency.delete(0, tk.END)
-    entry_water_amount.delete(0, tk.END)
-    entry_irrigation_method.delete(0, tk.END)
-    entry_ph_level.delete(0, tk.END)
-    entry_fertilizer_type.delete(0, tk.END)
-    entry_fertilizer_amount.delete(0, tk.END)
-    entry_light_exposure_duration.delete(0, tk.END)
-
-# تابع برای نمایش گیاهان در Treeview
-def show_plants_in_treeview(search_text=""):
-    # پاک کردن تمام آیتم‌های قبلی در Treeview
-    for row in treeview.get_children():
-        treeview.delete(row)
-
-    # دریافت تمام گیاهان از پایگاه داده
-    c.execute("SELECT * FROM plants")
-    rows = c.fetchall()
-
-    # قرار دادن گیاهان در Treeview
-    for row in rows:
-        if search_text.lower() in " ".join(map(str, row)).lower():
-            treeview.insert("", tk.END, values=row)
-
-# تابع برای جستجو
-def search_plants(event):
-    search_text = entry_search.get()
-    show_plants_in_treeview(search_text)
-
-# تابع برای نمایش پنجره افزودن گیاه
+# تابع نمایش پنجره افزودن گیاه جدید
 def show_add_plant_window():
+    global add_window, entry_scientific_name, entry_local_name, entry_family, entry_water_need, entry_light_need
+    global entry_soil_type, entry_irrigation_frequency, entry_water_amount, entry_irrigation_method
+    global entry_ph_level, entry_fertilizer_type, entry_fertilizer_amount, entry_light_exposure_duration
+
     add_window = tk.Toplevel(root)
     add_window.title("افزودن گیاه جدید")
 
@@ -111,11 +78,6 @@ def show_add_plant_window():
     tk.Label(add_window, text="نوع کود:").grid(row=10, column=0, padx=10, pady=5)
     tk.Label(add_window, text="مقدار کود:").grid(row=11, column=0, padx=10, pady=5)
     tk.Label(add_window, text="مدت زمان تابش نور:").grid(row=12, column=0, padx=10, pady=5)
-
-    global entry_scientific_name, entry_local_name, entry_family, entry_water_need
-    global entry_light_need, entry_soil_type, entry_irrigation_frequency
-    global entry_water_amount, entry_irrigation_method, entry_ph_level
-    global entry_fertilizer_type, entry_fertilizer_amount, entry_light_exposure_duration
 
     entry_scientific_name = tk.Entry(add_window, width=30)
     entry_scientific_name.grid(row=0, column=1, padx=10, pady=5)
@@ -144,11 +106,31 @@ def show_add_plant_window():
     entry_light_exposure_duration = tk.Entry(add_window, width=30)
     entry_light_exposure_duration.grid(row=12, column=1, padx=10, pady=5)
 
-    # دکمه برای افزودن گیاه
     btn_add = tk.Button(add_window, text="افزودن گیاه", command=add_plant)
     btn_add.grid(row=13, column=0, columnspan=2, pady=10)
 
-# تابع برای ویرایش گیاه انتخاب شده
+# تابع جستجوی گیاهان
+def search_plants(event):
+    search_term = entry_search.get()
+    query = "SELECT * FROM plants WHERE scientific_name LIKE ? OR local_name LIKE ?"
+    c.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
+    plants = c.fetchall()
+    update_treeview(plants)
+
+# تابع به‌روزرسانی Treeview
+def update_treeview(plants):
+    for item in treeview.get_children():
+        treeview.delete(item)
+    for plant in plants:
+        treeview.insert('', 'end', values=plant)
+
+# تابع نمایش گیاهان در Treeview
+def show_plants_in_treeview():
+    c.execute("SELECT * FROM plants")
+    plants = c.fetchall()
+    update_treeview(plants)
+
+# تابع ویرایش گیاه انتخاب شده
 def edit_plant():
     selected_item = treeview.selection()
     if not selected_item:
@@ -157,6 +139,11 @@ def edit_plant():
     
     plant = treeview.item(selected_item)["values"]
     plant_id = plant[0]
+
+    global edit_window, entry_scientific_name_edit, entry_local_name_edit, entry_family_edit, entry_water_need_edit
+    global entry_light_need_edit, entry_soil_type_edit, entry_irrigation_frequency_edit, entry_water_amount_edit
+    global entry_irrigation_method_edit, entry_ph_level_edit, entry_fertilizer_type_edit, entry_fertilizer_amount_edit
+    global entry_light_exposure_duration_edit
 
     edit_window = tk.Toplevel(root)
     edit_window.title("ویرایش گیاه")
@@ -178,129 +165,129 @@ def edit_plant():
 
     entry_scientific_name_edit = tk.Entry(edit_window, width=30)
     entry_scientific_name_edit.grid(row=0, column=1, padx=10, pady=5)
+    entry_scientific_name_edit.insert(0, plant[1])
     entry_local_name_edit = tk.Entry(edit_window, width=30)
     entry_local_name_edit.grid(row=1, column=1, padx=10, pady=5)
+    entry_local_name_edit.insert(0, plant[2])
     entry_family_edit = tk.Entry(edit_window, width=30)
     entry_family_edit.grid(row=2, column=1, padx=10, pady=5)
+    entry_family_edit.insert(0, plant[3])
     entry_water_need_edit = tk.Entry(edit_window, width=30)
     entry_water_need_edit.grid(row=3, column=1, padx=10, pady=5)
+    entry_water_need_edit.insert(0, plant[4])
     entry_light_need_edit = tk.Entry(edit_window, width=30)
     entry_light_need_edit.grid(row=4, column=1, padx=10, pady=5)
+    entry_light_need_edit.insert(0, plant[5])
     entry_soil_type_edit = tk.Entry(edit_window, width=30)
     entry_soil_type_edit.grid(row=5, column=1, padx=10, pady=5)
+    entry_soil_type_edit.insert(0, plant[6])
     entry_irrigation_frequency_edit = tk.Entry(edit_window, width=30)
     entry_irrigation_frequency_edit.grid(row=6, column=1, padx=10, pady=5)
+    entry_irrigation_frequency_edit.insert(0, plant[7])
     entry_water_amount_edit = tk.Entry(edit_window, width=30)
     entry_water_amount_edit.grid(row=7, column=1, padx=10, pady=5)
+    entry_water_amount_edit.insert(0, plant[8])
     entry_irrigation_method_edit = tk.Entry(edit_window, width=30)
     entry_irrigation_method_edit.grid(row=8, column=1, padx=10, pady=5)
+    entry_irrigation_method_edit.insert(0, plant[9])
     entry_ph_level_edit = tk.Entry(edit_window, width=30)
     entry_ph_level_edit.grid(row=9, column=1, padx=10, pady=5)
+    entry_ph_level_edit.insert(0, plant[10])
     entry_fertilizer_type_edit = tk.Entry(edit_window, width=30)
     entry_fertilizer_type_edit.grid(row=10, column=1, padx=10, pady=5)
+    entry_fertilizer_type_edit.insert(0, plant[11])
     entry_fertilizer_amount_edit = tk.Entry(edit_window, width=30)
     entry_fertilizer_amount_edit.grid(row=11, column=1, padx=10, pady=5)
+    entry_fertilizer_amount_edit.insert(0, plant[12])
     entry_light_exposure_duration_edit = tk.Entry(edit_window, width=30)
     entry_light_exposure_duration_edit.grid(row=12, column=1, padx=10, pady=5)
-
-    entry_scientific_name_edit.insert(0, plant[1])
-    entry_local_name_edit.insert(0, plant[2])
-    entry_family_edit.insert(0, plant[3])
-    entry_water_need_edit.insert(0, plant[4])
-    entry_light_need_edit.insert(0, plant[5])
-    entry_soil_type_edit.insert(0, plant[6])
-    entry_irrigation_frequency_edit.insert(0, plant[7])
-    entry_water_amount_edit.insert(0, plant[8])
-    entry_irrigation_method_edit.insert(0, plant[9])
-    entry_ph_level_edit.insert(0, plant[10])
-    entry_fertilizer_type_edit.insert(0, plant[11])
-    entry_fertilizer_amount_edit.insert(0, plant[12])
     entry_light_exposure_duration_edit.insert(0, plant[13])
 
-    def update_plant():
-        new_scientific_name = entry_scientific_name_edit.get()
-        new_local_name = entry_local_name_edit.get()
-        new_family = entry_family_edit.get()
-        new_water_need = entry_water_need_edit.get()
-        new_light_need = entry_light_need_edit.get()
-        new_soil_type = entry_soil_type_edit.get()
-        new_irrigation_frequency = entry_irrigation_frequency_edit.get()
-        new_water_amount = entry_water_amount_edit.get()
-        new_irrigation_method = entry_irrigation_method_edit.get()
-        new_ph_level = entry_ph_level_edit.get()
-        new_fertilizer_type = entry_fertilizer_type_edit.get()
-        new_fertilizer_amount = entry_fertilizer_amount_edit.get()
-        new_light_exposure_duration = entry_light_exposure_duration_edit.get()
+    btn_save_edit = tk.Button(edit_window, text="ذخیره تغییرات", command=lambda: save_edit(plant_id))
+    btn_save_edit.grid(row=13, column=0, columnspan=2, pady=10)
 
-        c.execute('''
-                  UPDATE plants
-                  SET scientific_name=?, local_name=?, family=?, water_need=?, light_need=?, soil_type=?,
-                      irrigation_frequency=?, water_amount=?, irrigation_method=?, ph_level=?,
-                      fertilizer_type=?, fertilizer_amount=?, light_exposure_duration=?
-                  WHERE id=?
-                  ''',
-                  (new_scientific_name, new_local_name, new_family, new_water_need, new_light_need, new_soil_type,
-                   new_irrigation_frequency, new_water_amount, new_irrigation_method, new_ph_level,
-                   new_fertilizer_type, new_fertilizer_amount, new_light_exposure_duration, plant_id))
-        conn.commit()
+# تابع ذخیره تغییرات ویرایش
+def save_edit(plant_id):
+    scientific_name = entry_scientific_name_edit.get()
+    local_name = entry_local_name_edit.get()
+    family = entry_family_edit.get()
+    water_need = entry_water_need_edit.get()
+    light_need = entry_light_need_edit.get()
+    soil_type = entry_soil_type_edit.get()
+    irrigation_frequency = entry_irrigation_frequency_edit.get()
+    water_amount = entry_water_amount_edit.get()
+    irrigation_method = entry_irrigation_method_edit.get()
+    ph_level = entry_ph_level_edit.get()
+    fertilizer_type = entry_fertilizer_type_edit.get()
+    fertilizer_amount = entry_fertilizer_amount_edit.get()
+    light_exposure_duration = entry_light_exposure_duration_edit.get()
 
-        messagebox.showinfo("ویرایش گیاه", "گیاه با موفقیت به‌روزرسانی شد.")
-        show_plants_in_treeview()
-        edit_window.destroy()
+    c.execute('''
+              UPDATE plants
+              SET scientific_name = ?, local_name = ?, family = ?, water_need = ?, light_need = ?, soil_type = ?,
+                  irrigation_frequency = ?, water_amount = ?, irrigation_method = ?, ph_level = ?,
+                  fertilizer_type = ?, fertilizer_amount = ?, light_exposure_duration = ?
+              WHERE id = ?
+              ''',
+              (scientific_name, local_name, family, water_need, light_need, soil_type,
+               irrigation_frequency, water_amount, irrigation_method, ph_level,
+               fertilizer_type, fertilizer_amount, light_exposure_duration, plant_id))
+    conn.commit()
+    messagebox.showinfo("ویرایش گیاه", "تغییرات با موفقیت ذخیره شد.")
+    show_plants_in_treeview()
+    edit_window.destroy()
 
-    btn_update = tk.Button(edit_window, text="به‌روزرسانی گیاه", command=update_plant)
-    btn_update.grid(row=13, column=0, columnspan=2, pady=10)
-
-# تابع برای حذف گیاه انتخاب شده
+# تابع حذف گیاه انتخاب شده
 def delete_plant():
     selected_item = treeview.selection()
     if not selected_item:
         messagebox.showwarning("حذف گیاه", "لطفاً یک گیاه را انتخاب کنید.")
         return
-    
+
     plant = treeview.item(selected_item)["values"]
     plant_id = plant[0]
 
-    response = messagebox.askyesno("حذف گیاه", f"آیا مطمئنید که می خواهید گیاه {plant[1]} را حذف کنید؟")
-    if response == 1:
-        c.execute("DELETE FROM plants WHERE id=?", (plant_id,))
-        conn.commit()
-        messagebox.showinfo("حذف گیاه", f"گیاه {plant[1]} با موفقیت حذف شد.")
-        show_plants_in_treeview()
+    c.execute("DELETE FROM plants WHERE id = ?", (plant_id,))
+    conn.commit()
+    messagebox.showinfo("حذف گیاه", "گیاه با موفقیت حذف شد.")
+    show_plants_in_treeview()
 
-# تابع برای ایجاد و نمایش پنجره اصلی
+# تابع اصلی برای ایجاد رابط کاربری
 def main_window():
     global root, treeview, entry_search
 
     root = tk.Tk()
-    root.title("سیستم مدیریت گیاهان")
-
-    # تنظیم اندازه پنجره اصلی
+    root.title("مدیریت و نگهداری گیاهان")
     root.geometry("600x600")
 
-    # دکمه افزودن گیاه جدید
-    btn_add_plant = tk.Button(root, text="افزودن گیاه جدید", command=show_add_plant_window)
-    btn_add_plant.pack(pady=10)
-
-    # جستجو
-    tk.Label(root, text="جستجو:").pack()
-    entry_search = tk.Entry(root, width=30)
+    # کادر جستجو
+    tk.Label(root, text="جستجو:").pack(pady=10)
+    entry_search = tk.Entry(root, width=50)
     entry_search.pack()
     entry_search.bind("<KeyRelease>", search_plants)
 
-    # ساخت Treeview برای نمایش گیاهان
+    # Treeview برای نمایش گیاهان
     columns = ("id", "scientific_name", "local_name", "family", "water_need", "light_need", "soil_type",
-               "irrigation_frequency", "water_amount", "irrigation_method", "ph_level",
-               "fertilizer_type", "fertilizer_amount", "light_exposure_duration")
-    
-    treeview = ttk.Treeview(root, columns=columns, show="headings")
-    treeview.pack(expand=True, fill="both")
+               "irrigation_frequency", "water_amount", "irrigation_method", "ph_level", "fertilizer_type",
+               "fertilizer_amount", "light_exposure_duration")
+    treeview = ttk.Treeview(root, columns=columns, show="headings", height=15)
 
-    for col in columns:
-        treeview.heading(col, text=col)
-        treeview.column(col, width=100)
+    treeview.heading("id", text="شناسه")
+    treeview.heading("scientific_name", text="نام علمی")
+    treeview.heading("local_name", text="نام محلی")
+    treeview.heading("family", text="خانواده")
+    treeview.heading("water_need", text="نیاز آبی")
+    treeview.heading("light_need", text="نیاز نوری")
+    treeview.heading("soil_type", text="نوع خاک")
+    treeview.heading("irrigation_frequency", text="فرکانس آبیاری")
+    treeview.heading("water_amount", text="مقدار آب")
+    treeview.heading("irrigation_method", text="نحوه آبیاری")
+    treeview.heading("ph_level", text="میزان pH")
+    treeview.heading("fertilizer_type", text="نوع کود")
+    treeview.heading("fertilizer_amount", text="مقدار کود")
+    treeview.heading("light_exposure_duration", text="مدت زمان تابش نور")
 
-    # اضافه کردن اسکرولبار به Treeview
+    # Scrollbars
     scrollbar_y = tk.Scrollbar(root, orient=tk.VERTICAL, command=treeview.yview)
     treeview.configure(yscrollcommand=scrollbar_y.set)
     scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
@@ -309,7 +296,12 @@ def main_window():
     treeview.configure(xscrollcommand=scrollbar_x.set)
     scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
 
+    treeview.pack(pady=10, padx=10, expand=True, fill=tk.BOTH)
+
     # دکمه‌های ویرایش و حذف
+    btn_add_plant = tk.Button(root, text="افزودن گیاه جدید", command=show_add_plant_window)
+    btn_add_plant.pack(side=tk.LEFT, padx=10, pady=10)
+
     btn_edit = tk.Button(root, text="ویرایش گیاه", command=edit_plant)
     btn_edit.pack(side=tk.LEFT, padx=10, pady=10)
 
