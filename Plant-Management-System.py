@@ -155,13 +155,13 @@ def show_add_plant_window():
 
         entry_widget.bind("<Button-3>", show_context_menu)
 
-    # اضافه کردن منوی راست کلیک به تمام فیلدهای ورودی
     for widget in [entry_scientific_name, entry_local_name, entry_family, entry_temperature_need, entry_light_need,
                    entry_soil_type, entry_irrigation_frequency, entry_water_amount, entry_irrigation_method,
                    entry_ph_level, entry_fertilizer_type, entry_fertilizer_amount, entry_light_exposure_duration,
-                   entry_humidity, entry_solution_composition, entry_light_type]:
+                   entry_humidity, entry_solution_composition, entry_light_type, entry_disease_type,
+                   entry_prevention_method, entry_treatment_method]:
         add_context_menu(widget)
-
+        
 # تابع نمایش گیاهان در Treeview
 def show_plants_in_treeview():
     for i in tree.get_children():
